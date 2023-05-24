@@ -1,0 +1,135 @@
+import os
+import requests
+from twilio.rest import Client
+from twilio.http.http_client import TwilioHttpClient
+
+
+from dotenv import load_dotenv
+project_folder = os.path.expanduser('/home/evanprograms')
+load_dotenv(os.path.join(project_folder, '.env'))
+
+
+
+api_key = os.getenv("OWM_API_KEY")
+OWM_Endpoint = "https://api.openweathermap.org/data/2.8/onecall"
+account_sid = os.getenv("ACCOUNT_SID")
+auth_token = os.getenv("AUTH_TOKEN")
+my_phone = os.getenv("MY_PHONE")
+her_phone = os.getenv("HER_PHONE")
+owm_phone = os.getenv("OWM_PHONE")
+his_phone = os.getenv("HIS_PHONE")
+coinmarketkey = os.getenv("COINMARKETKEY")
+
+
+weather_params = {
+    "appid": api_key,
+    "lat": 	28.078072,
+    "lon": -82.763710,
+    "exclude": "current,minutely,daily"
+}
+
+
+response = requests.get(OWM_Endpoint, params=weather_params)
+response.raise_for_status()
+weather_data = response.json()
+
+### My version without slicing
+rain = False
+for x in range(12):
+    weather = weather_data["hourly"][x]["weather"][0]["id"]
+    if weather < 700:
+        print(weather)
+    if weather < 700:
+        rain = True
+
+print(f"Rain is {rain}")
+
+client = Client(account_sid, auth_token)
+if rain:
+    message1 = client.messages \
+        .create(
+        body="It's going to rain in the next 12 hours in Palm Harbor, FL! Hugs and kisses, bring an umbrella ☂️",
+        from_=owm_phone,
+        to=my_phone,
+    )
+    message2 = client.messages \
+        .create(
+        body="It's going to rain in the next 12 hours in Palm Harbor, FL! Hugs and kisses, bring an umbrella ☂️",
+        from_=owm_phone,
+        to=her_phone,
+    )
+
+    print(message1.status)
+    print(message2.status)
+
+## CRYPTO TEXT
+
+
+from requests import Session
+import json
+
+def getInfo():  # Function to get the info
+    # coinmarketcap
+    #Make Environmental
+    global coinmarketkey
+
+    url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'  # Coinmarketcap API url
+
+    parameters = {'slug': 'jesus',
+                  'convert': 'USD'}  # API parameters to pass in for retrieving specific cryptocurrency data
+
+    headers = {
+        'Accepts': 'application/json',
+        'X-CMC_PRO_API_KEY': coinmarketkey
+    }  # Replace 'YOUR_API_KEY' with the API key you have recieved in the previous step
+
+    session = Session()
+    session.headers.update(headers)
+
+    response = session.get(url, params=parameters)
+
+    info = json.loads(response.text)
+    #test purposes if you want to see raw data, you can print the json_object
+    json_object = json.dumps(info)
+    jesus_coin = info["data"]["25526"]["quote"]["USD"]["price"]
+    twentyfourhour = info["data"]["25526"]["quote"]["USD"]["percent_change_24h"]
+    return float(jesus_coin), float(abs(round(twentyfourhour, 3))), float(twentyfourhour)
+
+
+# Retrieving info from getInfo() function
+coin_info, twentyfourhourinfoabs, twentyfourhourinfo = getInfo()
+
+# Removing scientific notation
+suppressedNum = f"{coin_info:.20f}"
+
+
+# Indicate Positive/Negative percentage change of coin
+if twentyfourhourinfo > 0:
+    marker = "🔺"
+elif twentyfourhourinfo == 0:
+    marker = ""
+else:
+    marker = "🔻"
+
+# Set and test correct message body for text
+body_text = f"The price of JESUS coin is ${coin_info:.4e}, or ${suppressedNum}." \
+            f" The 24 hour change is {marker}{twentyfourhourinfoabs}%"
+print(body_text)
+
+# USE ENVIRONMENTALS. Phone call from twilio
+crypto1 = client.messages \
+    .create(
+    body=body_text,
+    from_=owm_phone,
+    to=my_phone,
+)
+crypto2 = client.messages \
+    .create(
+    body=body_text,
+    from_=owm_phone,
+    to=his_phone,
+)
+
+# Check twilio text status
+print(crypto1.status)
+print(crypto2.status)
